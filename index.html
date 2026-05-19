@@ -684,6 +684,7 @@ function selectItem(code){
   if(!it) return;
   selectedCode=code;
   inp.value=it.name;
+  document.getElementById('order-qty').value='';
   document.getElementById('combo-dd').classList.remove('open');
   document.getElementById('order-qty').focus();
 }
