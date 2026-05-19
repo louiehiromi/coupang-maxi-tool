@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coupang Maxi Tool</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --sans:'Noto Sans TC',sans-serif;
+  --mono:'DM Mono',monospace;
+  --bg:#f5f3ef;
+  --surface:#ffffff;
+  --surface2:#f0ede8;
+  --surface3:#e8e4de;
+  --border-lo:rgba(0,0,0,.07);
+  --border-md:rgba(0,0,0,.13);
+  --border-hi:rgba(0,0,0,.22);
+  --ink:#1c1b18;
+  --ink2:#4a4842;
+  --ink3:#8a8880;
+  --ok:#3d7a58;
+  --ok-bg:#eaf4ee;
+  --ok-border:rgba(61,122,88,.25);
+  --warn:#8a5800;
+  --warn-bg:#fdf3e0;
+  --warn-border:rgba(138,88,0,.22);
+  --danger:#9a3020;
+  --danger-bg:#f8eceb;
+  --danger-border:rgba(154,48,32,.22);
+  --accent:#2a5298;
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:14px;
+}
+
+html{font-size:14px;}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  padding:36px 20px 80px;
+  line-height:1.6;
+  font-weight:400;
+}
+
+.wrap{max-width:920px;margin:0 auto;}
+
+/* HEADER */
+.hd{
+  padding-bottom:20px;
+  border-bottom:1px solid var(--border-md);
+  margin-bottom:32px;
+  display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;
+}
+.hd-sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;font-weight:500;}
+.hd-title{font-size:1.45rem;font-weight:600;color:var(--ink);letter-spacing:-.02em;font-family:'Plus Jakarta Sans',sans-serif;}
+.hd-desc{font-size:12px;color:var(--ink3);margin-top:4px;font-weight:400;}
+.status-pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.pill{
+  font-family:var(--mono);font-size:10px;letter-spacing:.05em;
+  padding:3px 10px;border-radius:20px;
+  border:0.5px solid var(--border-md);
+  color:var(--ink3);
+  display:flex;align-items:center;gap:5px;
+  transition:all .2s;
+}
+.pill-dot{width:5px;height:5px;border-radius:50%;background:var(--border-hi);flex-shrink:0;transition:background .2s;}
+.pill.ready{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);}
+.pill.ready .pill-dot{background:var(--ok);}
+
+/* SECTION */
+.sec{margin-bottom:28px;}
+.sec-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink3);
+  margin-bottom:12px;font-weight:500;
+  display:flex;align-items:center;gap:8px;
+}
+.sec-label::after{content:'';flex:1;height:0.5px;background:var(--border-lo);}
+
+/* UPLOAD GRID */
+.upload-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+@media(max-width:700px){.upload-grid{grid-template-columns:1fr 1fr;}}
+
+.file-group-label{
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink3);text-align:center;margin-bottom:4px;font-weight:500;
+  padding:0 4px;
+}
+.file-group{display:flex;flex-direction:column;}
+
+.upload-zone{
+  background:var(--surface);
+  border:0.5px solid var(--border-lo);
+  border-radius:var(--radius-md);
+  padding:14px 12px 12px;
+  cursor:pointer;position:relative;
+  transition:border-color .15s,background .15s;
+  display:flex;flex-direction:column;
+}
+.upload-zone:hover{border-color:var(--border-md);background:#fdfcfb;}
+.upload-zone.loaded{background:var(--ok-bg);border-color:var(--ok-border);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.uz-num{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-bottom:7px;letter-spacing:.08em;font-weight:500;}
+.uz-label{font-size:11px;font-weight:600;color:var(--ink);margin-bottom:2px;line-height:1.3;}
+.uz-hint{font-size:10px;color:var(--ink3);font-weight:400;line-height:1.4;}
+.uz-fname{font-family:var(--mono);font-size:10px;color:var(--ok);margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400;}
+.uz-time{font-family:var(--mono);font-size:9px;color:var(--ink3);margin-top:2px;font-weight:400;letter-spacing:.02em;}
+.uz-cta{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:8px;letter-spacing:.02em;}
+
+/* QUERY CARD */
+.query-card{
+  background:var(--surface);border:0.5px solid var(--border-lo);
+  border-radius:var(--radius-lg);padding:20px 22px;
+}
+.query-row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:500;}
+
+.combo-wrap{position:relative;width:260px;}
+.combo-input{
+  width:100%;padding:8px 28px 8px 12px;
+  border:0.5px solid var(--border-md);border-radius:var(--radius-sm);
+  font-family:var(--sans);font-size:13px;font-weight:400;color:var(--ink);
+  background:var(--bg);outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.combo-input:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px rgba(0,0,0,.05);}
+.combo-input:disabled{color:var(--ink3);cursor:not-allowed;background:var(--surface2);}
+.combo-input::placeholder{color:var(--ink3);}
+.combo-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--ink3);font-size:10px;}
+.combo-dropdown{
+  position:absolute;top:calc(100% + 4px);left:0;width:100%;max-height:220px;overflow-y:auto;
+  background:var(--surface);border:0.5px solid var(--border-md);border-radius:var(--radius-md);
+  box-shadow:0 4px 16px rgba(0,0,0,.08);z-index:99;display:none;
+}
+.combo-dropdown.open{display:block;}
+.combo-option{
+  padding:8px 13px;font-size:12px;cursor:pointer;
+  border-bottom:0.5px solid var(--border-lo);
+  display:flex;gap:8px;align-items:baseline;
+}
+.combo-option:last-child{border-bottom:none;}
+.combo-option:hover,.combo-option.active{background:var(--surface2);}
+.opt-code{font-family:var(--mono);font-size:10px;color:var(--ink3);flex-shrink:0;}
+.combo-empty{padding:12px 13px;font-size:12px;color:var(--ink3);}
+
+.num-input,.date-input{
+  padding:8px 12px;
+  border:0.5px solid var(--border-md);border-radius:var(--radius-sm);
+  font-family:var(--mono);font-size:13px;font-weight:400;color:var(--ink);
+  background:var(--bg);outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.num-input{width:110px;}
+.date-input{width:140px;}
+.num-input:focus,.date-input:focus{border-color:var(--border-hi);box-shadow:0 0 0 3px rgba(0,0,0,.05);}
+.num-input:disabled,.date-input:disabled{color:var(--ink3);cursor:not-allowed;background:var(--surface2);}
+.num-input::placeholder,.date-input::placeholder{color:var(--ink3);}
+.date-input.error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(154,48,32,.1);}
+
+.btn-row{display:flex;gap:8px;padding-bottom:1px;}
+.btn{
+  padding:8px 18px;border-radius:var(--radius-sm);
+  font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.06em;
+  cursor:pointer;transition:all .15s;border:0.5px solid var(--border-md);
+  background:transparent;color:var(--ink2);
+}
+.btn:hover{background:var(--surface2);border-color:var(--border-hi);}
+.btn-primary{background:#1c1b18;color:#fff;border-color:#1c1b18;}
+.btn-primary:hover{background:#3a3832;border-color:#3a3832;}
+.btn-primary:disabled{background:var(--surface2);border-color:var(--border-lo);color:var(--ink3);cursor:not-allowed;}
+
+.growth-row{
+  display:flex;align-items:center;gap:14px;
+  margin-top:14px;padding-top:14px;
+  border-top:0.5px solid var(--border-lo);
+}
+.growth-label{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.08em;white-space:nowrap;font-weight:500;}
+.growth-slider{flex:1;max-width:140px;accent-color:#1c1b18;}
+.growth-val{font-family:var(--mono);font-size:12px;font-weight:500;color:#1c1b18;width:50px;}
+
+/* RESULT PANELS */
+.result-wrap{display:none;margin-top:24px;}
+.panels-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:600px){.panels-grid{grid-template-columns:1fr;}}
+
+.panel{
+  background:var(--surface);border:0.5px solid var(--border-lo);
+  border-radius:var(--radius-lg);overflow:hidden;
+}
+.panel-header{
+  padding:14px 18px;
+  border-bottom:0.5px solid var(--border-lo);
+  display:flex;align-items:center;gap:10px;
+}
+.panel-icon{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);background:var(--surface2);border:0.5px solid var(--border-lo);border-radius:4px;padding:3px 7px;flex-shrink:0;font-weight:500;}
+.panel-title{font-size:12px;font-weight:600;color:var(--ink);}
+.panel-sub{font-size:11px;color:var(--ink3);margin-top:2px;}
+.panel-body{padding:16px 18px;}
+
+/* verdict */
+.verdict-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:20px;
+  font-size:12px;font-weight:600;
+  border:0.5px solid;
+  margin-bottom:14px;
+}
+.verdict-ok{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);}
+.verdict-warn{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn);}
+.verdict-no{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger);}
+.verdict-neutral{background:var(--surface2);border-color:var(--border-lo);color:var(--ink3);}
+
+/* stat rows */
+.stat-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:6px 0;border-bottom:0.5px solid var(--border-lo);
+  font-size:12px;
+}
+.stat-row:last-child{border-bottom:none;}
+.stat-label{color:var(--ink3);font-weight:400;}
+.stat-value{font-family:var(--mono);font-weight:500;color:var(--ink);}
+.stat-value.ok{color:var(--ok);}
+.stat-value.danger{color:var(--danger);}
+.stat-value.warn{color:var(--warn);}
+
+.verdict-msg{
+  margin-top:12px;padding:10px 12px;
+  border-radius:var(--radius-sm);
+  font-size:11px;line-height:1.6;
+  border:0.5px solid;
+}
+.msg-ok{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);}
+.msg-warn{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn);}
+.msg-no{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger);}
+.msg-neutral{background:var(--surface2);border-color:var(--border-lo);color:var(--ink3);}
+
+/* SUMMARY BANNER */
+.summary-banner{
+  border-radius:var(--radius-lg);
+  padding:18px 22px;
+  margin-bottom:16px;
+  border:0.5px solid;
+  border-left-width:3px;
+  display:flex;align-items:center;gap:16px;
+}
+.banner-ok{background:var(--ok-bg);border-color:var(--ok);}
+.banner-warn{background:var(--warn-bg);border-color:var(--warn);}
+.banner-no{background:var(--danger-bg);border-color:var(--danger);}
+.banner-neutral{background:var(--surface2);border-color:var(--border-md);}
+.banner-icon{display:none;}
+.banner-main{font-size:15px;font-weight:600;}
+.banner-main.ok{color:var(--ok);}
+.banner-main.warn{color:var(--warn);}
+.banner-main.no{color:var(--danger);}
+.banner-main.neutral{color:var(--ink3);}
+.banner-detail{font-size:12px;color:var(--ink2);margin-top:4px;line-height:1.6;}
+
+/* YOY TABLE */
+.yoy-section{margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border-lo);}
+.yoy-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;font-weight:500;}
+.yoy-table{width:100%;border-collapse:collapse;font-size:11px;}
+.yoy-table th{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);font-weight:500;padding:5px 8px;text-align:right;border-bottom:0.5px solid var(--border-lo);}
+.yoy-table th:first-child{text-align:left;}
+.yoy-table td{font-family:var(--mono);padding:6px 8px;border-bottom:0.5px solid var(--border-lo);text-align:right;color:var(--ink);}
+.yoy-table td:first-child{text-align:left;font-family:var(--sans);font-size:11px;color:var(--ink2);}
+.yoy-table tr:last-child td{border-bottom:none;}
+.diff-pos{color:var(--ok);}
+.diff-neg{color:var(--danger);}
+.muted{color:var(--ink3);}
+
+/* WO ROWS */
+.wo-section{margin-top:12px;}
+.wo-title{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;font-weight:500;}
+.wo-row{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border-lo);font-size:11px;}
+.wo-row:last-child{border-bottom:none;}
+.wo-date{font-family:var(--mono);color:var(--ink3);width:88px;flex-shrink:0;}
+.wo-supplier{flex:1;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wo-qty{font-family:var(--mono);font-weight:500;white-space:nowrap;}
+.wo-flag{font-family:var(--mono);font-size:10px;white-space:nowrap;}
+
+/* HISTORY */
+.history-card{
+  background:var(--surface);border:0.5px solid var(--border-lo);
+  border-radius:var(--radius-lg);overflow:hidden;margin-top:16px;
+}
+.history-item{
+  padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  border-bottom:0.5px solid var(--border-lo);
+}
+.history-item:last-child{border-bottom:none;}
+.history-name{font-size:12px;font-weight:500;color:var(--ink);}
+.history-meta{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-top:3px;}
+.history-tags{display:flex;gap:6px;flex-shrink:0;}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.04em;padding:2px 8px;border-radius:20px;border:0.5px solid;white-space:nowrap;}
+.tag-ok{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);}
+.tag-warn{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn);}
+.tag-no{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger);}
+.tag-neutral{background:var(--surface2);border-color:var(--border-lo);color:var(--ink3);}
+
+/* Missing file note */
+.missing-note{
+  font-size:11px;color:var(--ink3);font-style:italic;
+  padding:10px 12px;border:0.5px dashed var(--border-md);border-radius:var(--radius-sm);
+  margin-bottom:12px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="hd">
+    <div>
+      <div class="hd-sub">接單決策系統</div>
+      <div class="hd-title">Coupang Maxi Tool</div>
+      <div class="hd-desc">整合配貨天花板 ＋ 庫存充足性，一次判斷能否接單</div>
+    </div>
+    <div class="status-pills">
+      <span class="pill" id="pill-ly"><span class="pill-dot"></span>去年銷量</span>
+      <span class="pill" id="pill-ty"><span class="pill-dot"></span>今年銷量</span>
+      <span class="pill" id="pill-mm"><span class="pill-dot"></span>本月配貨</span>
+      <span class="pill" id="pill-stock"><span class="pill-dot"></span>D+60庫存</span>
+      <span class="pill" id="pill-wo"><span class="pill-dot"></span>生產工單</span>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="sec">
+    <div class="sec-label">01　上傳資料</div>
+    <div class="upload-grid">
+      <!-- group A: ceiling -->
+      <div class="file-group">
+        <div class="file-group-label">── 配貨天花板 ──</div>
+        <label class="upload-zone" id="z-ly">
+          <input type="file" accept=".xlsx,.xls" id="f-ly">
+          <div class="uz-num">01</div>
+          <div class="uz-label">去年同期銷量</div>
+          <div class="uz-hint">ERP 銷貨單明細<br>（去年）</div>
+          <div class="uz-fname" id="fn-ly"></div>
+          <div class="uz-time" id="ft-ly"></div>
+          <div class="uz-cta">點此上傳 →</div>
+        </label>
+      </div>
+      <div class="file-group">
+        <div class="file-group-label">&nbsp;</div>
+        <label class="upload-zone" id="z-ty">
+          <input type="file" accept=".xlsx,.xls" id="f-ty">
+          <div class="uz-num">02</div>
+          <div class="uz-label">今年銷量</div>
+          <div class="uz-hint">ERP 銷貨單明細<br>（今年）</div>
+          <div class="uz-fname" id="fn-ty"></div>
+          <div class="uz-time" id="ft-ty"></div>
+          <div class="uz-cta">點此上傳 →</div>
+        </label>
+      </div>
+      <div class="file-group">
+        <div class="file-group-label">&nbsp;</div>
+        <label class="upload-zone" id="z-mm">
+          <input type="file" accept=".xlsx,.xls" id="f-mm">
+          <div class="uz-num">03</div>
+          <div class="uz-label">本月已配貨</div>
+          <div class="uz-hint">本月 Coupang<br>配貨明細</div>
+          <div class="uz-fname" id="fn-mm"></div>
+          <div class="uz-time" id="ft-mm"></div>
+          <div class="uz-cta">點此上傳 →</div>
+        </label>
+      </div>
+      <!-- group B: inventory -->
+      <div class="file-group">
+        <div class="file-group-label">── 庫存充足性 ──</div>
+        <label class="upload-zone" id="z-stock">
+          <input type="file" accept=".xlsx,.xls" id="f-stock">
+          <div class="uz-num">04</div>
+          <div class="uz-label">D+60 庫存表</div>
+          <div class="uz-hint">現有帳面<br>庫存數量</div>
+          <div class="uz-fname" id="fn-stock"></div>
+          <div class="uz-time" id="ft-stock"></div>
+          <div class="uz-cta">點此上傳 →</div>
+        </label>
+      </div>
+      <div class="file-group">
+        <div class="file-group-label">&nbsp;</div>
+        <label class="upload-zone" id="z-wo">
+          <input type="file" accept=".xlsx,.xls" id="f-wo">
+          <div class="uz-num">05</div>
+          <div class="uz-label">生產工單</div>
+          <div class="uz-hint">工單進行<br>狀況明細</div>
+          <div class="uz-fname" id="fn-wo"></div>
+          <div class="uz-time" id="ft-wo"></div>
+          <div class="uz-cta">點此上傳 →</div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUERY -->
+  <div class="sec">
+    <div class="sec-label">02　輸入訂單資訊</div>
+    <div class="query-card">
+      <div class="query-row">
+        <div class="field">
+          <div class="field-label">品項</div>
+          <div class="combo-wrap" id="combo-wrap">
+            <input type="text" class="combo-input" id="combo-input"
+                   placeholder="請先上傳 Excel" disabled autocomplete="off">
+            <span class="combo-arrow">▾</span>
+            <div class="combo-dropdown" id="combo-dd"></div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-label">本次訂單數量</div>
+          <input type="text" class="num-input" id="order-qty" placeholder="—" disabled inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <div class="field-label">訂單交貨日</div>
+          <input type="date" class="date-input" id="order-date" disabled>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-check" disabled>查詢</button>
+          <button class="btn" id="btn-clear">清除</button>
+        </div>
+      </div>
+      <div class="growth-row">
+        <span class="growth-label">成長係數</span>
+        <input type="range" class="growth-slider" id="growth-slider" min="0.5" max="3" step="0.05" value="1.2">
+        <span class="growth-val" id="growth-val">× 1.20</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-wrap" id="result-wrap">
+    <div class="sec-label">03　接單評估結果</div>
+
+    <!-- summary banner -->
+    <div class="summary-banner" id="banner">
+      <div class="banner-icon" id="banner-icon"></div>
+      <div>
+        <div class="banner-main" id="banner-main"></div>
+        <div class="banner-detail" id="banner-detail"></div>
+      </div>
+    </div>
+
+    <!-- two panels -->
+    <div class="panels-grid">
+      <!-- PANEL A: Ceiling -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-icon">天花板</div>
+          <div>
+            <div class="panel-title">配貨天花板</div>
+            <div class="panel-sub">依去年同月銷售基準計算</div>
+          </div>
+        </div>
+        <div class="panel-body" id="ceil-body">
+          <div class="missing-note">尚未上傳去年銷量、今年銷量或本月配貨資料</div>
+        </div>
+      </div>
+
+      <!-- PANEL B: Inventory -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-icon">庫存</div>
+          <div>
+            <div class="panel-title">庫存充足性</div>
+            <div class="panel-sub">依交貨日評估可用庫存</div>
+          </div>
+        </div>
+        <div class="panel-body" id="inv-body">
+          <div class="missing-note">尚未上傳 D+60 庫存表或生產工單資料</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- history -->
+    <div id="history-card" style="display:none">
+      <div class="sec-label" style="margin-top:8px">查詢紀錄</div>
+      <div class="history-card">
+        <div id="history-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const KEYS={LY:'cp_ly',TY:'cp_ty',MM:'cp_mm',STOCK:'cp_stock',WO:'cp_wo'};
+const META={LY:'cp_ly_meta',TY:'cp_ty_meta',MM:'cp_mm_meta',STOCK:'cp_stock_meta',WO:'cp_wo_meta'};
+
+let lyMap={},tyMap={},mmMap={},stockMap={},orderMap={};
+let allItems=[],selectedCode='',history=[],growth=1.2;
+
+/* ── IndexedDB ── */
+const DB_NAME='coupang_v2',DB_VER=1,STORE='files';
+let db;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>e.target.result.createObjectStore(STORE);r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=e=>rej(e);});}
+function dbSet(k,v){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k).onsuccess=()=>res();tx.onerror=e=>rej(e);});}
+function dbGet(k){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const r=tx.objectStore(STORE).get(k);r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e);});}
+
+/* ── Parsers ── */
+function parseAnnual(wb){
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:false});
+  const map={};
+  for(const row of rows){
+    const code=String(row[0]||'').trim();
+    if(!/^P\d+/.test(code)) continue;
+    const supplier=String(row[3]||'').trim();
+    const isCoupang=supplier.includes('酷澎');
+    const isMomo=supplier.toLowerCase().includes('momo');
+    if(!isCoupang&&!isMomo) continue;
+    const name=String(row[1]||code).trim();
+    const monthStr=String(row[4]||'').trim();
+    const mx=monthStr.match(/\/(\d{2})\s*$/);
+    const month=mx?parseInt(mx[1],10):0;
+    const qty=parseInt(String(row[5]||'0').replace(/[^\d]/g,''),10)||0;
+    if(!map[code]) map[code]={name,months:{},total:0,momoMonths:{}};
+    if(month&&qty>0){
+      if(isCoupang){map[code].months[month]=(map[code].months[month]||0)+qty;map[code].total+=qty;}
+      if(isMomo){map[code].momoMonths[month]=(map[code].momoMonths[month]||0)+qty;}
+    }
+  }
+  return map;
+}
+
+function parseMonthly(wb){
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:false});
+  const map={};
+  for(const row of rows){
+    const code=String(row[0]||'').trim();
+    if(!/^P\d+/.test(code)) continue;
+    const name=String(row[1]||code).trim();
+    const qty=parseInt(String(row[2]||'0').replace(/[^\d]/g,''),10)||0;
+    if(qty>0) map[code]={name,qty};
+  }
+  return map;
+}
+
+function parseStock(wb){
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+  const map={};
+  for(const row of rows){
+    const code=String(row[0]||'').trim();
+    if(!/^[A-Z]\d{5}$/.test(code)) continue;
+    map[code]={name:String(row[1]||'').trim(),spec:String(row[2]||'').trim(),qty:pn(row[3])};
+  }
+  return map;
+}
+
+function parseOrders(wb){
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:false});
+  const map={};
+  let pendingByWo={};
+  for(let i=0;i<rows.length;i++){
+    const row=rows[i];
+    const c0=String(row[0]||'').trim();
+    if(/^\d{4}\/\d{2}\/\d{2}/.test(c0)){
+      const woId=c0;
+      const supplier=String(row[2]||'').trim();
+      const deliveryRaw=String(row[3]||'').trim();
+      const deliveryDate=parseDateStr(deliveryRaw);
+      const unproduced=pn(row[8]);
+      if(!pendingByWo[woId]) pendingByWo[woId]={woId,deliveryDate,deliveryRaw:deliveryRaw.trim(),supplier,unproducedValues:[]};
+      pendingByWo[woId].unproducedValues.push(unproduced);
+      continue;
+    }
+    const m=c0.match(/^([A-Z]\d{5})\s*\/\s*(.+?)\s*合計$/);
+    if(m){
+      const code=m[1],name=m[2].trim();
+      if(!map[code]) map[code]={name,workOrders:[]};
+      for(const wo of Object.values(pendingByWo)){
+        const minU=wo.unproducedValues.length?Math.min(...wo.unproducedValues):0;
+        if(minU>0) map[code].workOrders.push({woId:wo.woId,deliveryDate:wo.deliveryDate,deliveryRaw:wo.deliveryRaw,supplier:wo.supplier,unproduced:minU});
+      }
+      pendingByWo={};
+    }
+  }
+  return map;
+}
+
+function parseDateStr(s){
+  if(!s) return null;
+  const d=new Date(s.replace(/\s/g,'').replace(/\//g,'-'));
+  return isNaN(d)?null:d;
+}
+function pn(v){const s=String(v||'').replace(/,/g,'').trim();if(!s||s==='-') return 0;const n=parseFloat(s);return isNaN(n)?0:n;}
+
+/* ── File loading ── */
+async function loadFile(file,type){
+  const buf=await file.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array'});
+  const time=new Date().toISOString();
+  await dbSet(KEYS[type],buf);
+  await dbSet(META[type],{name:file.name,time});
+  processWB(wb,type,file.name,time);
+}
+
+const FILE_CONFIGS={
+  LY:{zone:'z-ly',fn:'fn-ly',pill:'pill-ly',pillLabel:'去年銷量',parse:'annual'},
+  TY:{zone:'z-ty',fn:'fn-ty',pill:'pill-ty',pillLabel:'今年銷量',parse:'annual'},
+  MM:{zone:'z-mm',fn:'fn-mm',pill:'pill-mm',pillLabel:'本月配貨',parse:'monthly'},
+  STOCK:{zone:'z-stock',fn:'fn-stock',pill:'pill-stock',pillLabel:'D+60庫存',parse:'stock'},
+  WO:{zone:'z-wo',fn:'fn-wo',pill:'pill-wo',pillLabel:'生產工單',parse:'orders'},
+};
+
+function fmtTime(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}  ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function processWB(wb,type,name,time){
+  const cfg=FILE_CONFIGS[type];
+  if(type==='LY') lyMap=parseAnnual(wb);
+  else if(type==='TY') tyMap=parseAnnual(wb);
+  else if(type==='MM') mmMap=parseMonthly(wb);
+  else if(type==='STOCK') stockMap=parseStock(wb);
+  else if(type==='WO') orderMap=parseOrders(wb);
+  document.getElementById(cfg.zone).classList.add('loaded');
+  document.getElementById(cfg.fn).textContent='✓  '+name;
+  const ftEl=document.getElementById('ft-'+cfg.zone.replace('z-',''));
+  if(ftEl) ftEl.textContent=time?fmtTime(time):'';
+  const pill=document.getElementById(cfg.pill);
+  pill.classList.add('ready');
+  pill.innerHTML=`<span class="pill-dot"></span>${cfg.pillLabel}`;
+  buildItems();
+}
+
+function buildItems(){
+  const ceilCodes=new Set([...Object.keys(lyMap),...Object.keys(tyMap),...Object.keys(mmMap)]);
+  const invCodes=new Set([...Object.keys(stockMap),...Object.keys(orderMap)]);
+  const allCodes=new Set([...ceilCodes,...invCodes]);
+  allItems=[...allCodes].sort().map(code=>{
+    const entry=lyMap[code]||tyMap[code]||mmMap[code]||stockMap[code]||orderMap[code]||{};
+    return {code,name:entry.name||code};
+  });
+  const hasSomething=allItems.length>0;
+  const inp=document.getElementById('combo-input');
+  if(hasSomething){
+    inp.disabled=false;inp.placeholder='輸入品名或編號搜尋';
+    document.getElementById('order-qty').disabled=false;
+    document.getElementById('order-date').disabled=false;
+    document.getElementById('btn-check').disabled=false;
+  }
+  renderDropdown('');
+}
+
+async function restoreFromDB(){
+  for(const type of ['LY','TY','MM','STOCK','WO']){
+    try{
+      const buf=await dbGet(KEYS[type]);
+      const meta=await dbGet(META[type])||{name:'已載入',time:null};
+      if(buf){const wb=XLSX.read(buf,{type:'array'});processWB(wb,type,meta.name,meta.time||null);}
+    }catch(e){}
+  }
+}
+
+/* ── Combobox ── */
+let activeIdx=-1;
+const inp=document.getElementById('combo-input');
+inp.addEventListener('input',()=>{selectedCode='';renderDropdown(inp.value);document.getElementById('combo-dd').classList.add('open');});
+inp.addEventListener('focus',()=>{inp.select();renderDropdown('');document.getElementById('combo-dd').classList.add('open');});
+document.addEventListener('click',e=>{if(!document.getElementById('combo-wrap').contains(e.target)) document.getElementById('combo-dd').classList.remove('open');});
+
+function renderDropdown(q){activeIdx=-1;
+  const dd=document.getElementById('combo-dd');
+  const filtered=q?allItems.filter(it=>it.name.includes(q)||it.code.toLowerCase().includes(q.toLowerCase())):allItems;
+  if(!filtered.length){dd.innerHTML='<div class="combo-empty">找不到符合品項</div>';}
+  else{
+    dd.innerHTML=filtered.slice(0,100).map(it=>`<div class="combo-option" data-code="${it.code}"><span class="opt-code">${esc(it.code)}</span>${esc(it.name)}</div>`).join('');
+    dd.querySelectorAll('.combo-option').forEach(el=>{el.addEventListener('mousedown',e=>{e.preventDefault();selectItem(el.dataset.code);});});
+  }
+}
+
+function selectItem(code){
+  const it=allItems.find(i=>i.code===code);
+  if(!it) return;
+  selectedCode=code;
+  inp.value=it.name;
+  document.getElementById('combo-dd').classList.remove('open');
+  document.getElementById('order-qty').focus();
+}
+
+inp.addEventListener('keydown',e=>{
+  const dd=document.getElementById('combo-dd');
+  const opts=[...document.querySelectorAll('#combo-dd .combo-option')];
+  if(e.key==='ArrowDown'){e.preventDefault();if(!dd.classList.contains('open')) dd.classList.add('open');setActive(Math.min(activeIdx+1,opts.length-1));}
+  else if(e.key==='ArrowUp'){e.preventDefault();setActive(Math.max(activeIdx-1,0));}
+  else if(e.key==='Enter'){if(dd.classList.contains('open')&&activeIdx>=0&&opts[activeIdx]){e.preventDefault();selectItem(opts[activeIdx].dataset.code);activeIdx=-1;}}
+  else if(e.key==='Escape'){dd.classList.remove('open');activeIdx=-1;}
+});
+
+function setActive(idx){
+  const opts=[...document.querySelectorAll('#combo-dd .combo-option')];
+  opts.forEach(o=>o.classList.remove('active'));
+  if(idx<0||idx>=opts.length){activeIdx=-1;return;}
+  activeIdx=idx;opts[idx].classList.add('active');opts[idx].scrollIntoView({block:'nearest'});
+}
+
+document.getElementById('growth-slider').addEventListener('input',function(){
+  growth=parseFloat(this.value);
+  document.getElementById('growth-val').textContent='× '+growth.toFixed(2);
+});
+
+/* ── Main check ── */
+document.getElementById('btn-check').addEventListener('click',doCheck);
+document.getElementById('order-qty').addEventListener('keydown',e=>{if(e.key==='Enter')doCheck();});
+document.getElementById('order-qty').addEventListener('input',()=>{document.getElementById('order-qty').value=document.getElementById('order-qty').value.replace(/[^\d]/g,'');});
+
+function getCurrentMonth(){
+  let maxM=0;
+  for(const d of Object.values(tyMap)){for(const m of Object.keys(d.months||{})) if(parseInt(m)>maxM) maxM=parseInt(m);}
+  return maxM||new Date().getMonth()+1;
+}
+
+function doCheck(){
+  if(!selectedCode){
+    const v=inp.value.trim();
+    const m=allItems.find(it=>it.code===v||it.name===v||v.startsWith(it.code));
+    if(m) selectedCode=m.code; else return;
+  }
+  const code=selectedCode;
+  const orderQty=parseInt(document.getElementById('order-qty').value)||0;
+  const rawDate=document.getElementById('order-date').value;
+  const dateEl=document.getElementById('order-date');
+
+  if(!rawDate){
+    dateEl.classList.add('error');
+    dateEl.focus();
+    dateEl.addEventListener('input',()=>dateEl.classList.remove('error'),{once:true});
+    return;
+  }
+  dateEl.classList.remove('error');
+
+  /* ── Ceiling calc ── */
+  const hasCeilingData=Object.keys(lyMap).length>0||Object.keys(tyMap).length>0||Object.keys(mmMap).length>0;
+  let ceilResult=null;
+  if(hasCeilingData){
+    const curMonth=getCurrentMonth();
+    const name=(lyMap[code]||tyMap[code]||mmMap[code]||{}).name||code;
+    const lyEntry=lyMap[code];
+    const lyCoupang=lyEntry?(lyEntry.months[curMonth]||0):0;
+    const lyMomo=(lyMap[code]||{}).momoMonths?.[curMonth]||0;
+    const baseQty=Math.max(lyCoupang,lyMomo);
+    const baseSource=lyCoupang>=lyMomo?'Coupang':'momo';
+    const ceil=Math.round(baseQty*growth);
+    const shipped=(mmMap[code]||{}).qty||0;
+    const total=shipped+orderQty;
+    const remain=ceil-total;
+    let ceilStatus;
+    if(ceil===0) ceilStatus='neutral';
+    else if(total<=ceil) ceilStatus='ok';
+    else if(shipped>=ceil) ceilStatus='no';
+    else ceilStatus='warn';
+    ceilResult={name,code,lyCoupang,lyMomo,baseQty,baseSource,ceil,shipped,orderQty,total,remain,ceilStatus,curMonth};
+  }
+
+  /* ── Inventory calc ── */
+  const hasInvData=Object.keys(stockMap).length>0||Object.keys(orderMap).length>0;
+  let invResult=null;
+  if(hasInvData&&rawDate){
+    const orderDate=new Date(rawDate);
+    orderDate.setHours(0,0,0,0);
+    const s=stockMap[code]||{};
+    const o=orderMap[code]||{};
+    const d60Stock=s.qty??0;
+    const invName=s.name||o.name||code;
+    const allWO=((o.workOrders||[]).slice()).sort((a,b)=>{
+      if(!a.deliveryDate) return 1;if(!b.deliveryDate) return -1;return a.deliveryDate-b.deliveryDate;
+    });
+    const inTimeWO=allWO.filter(wo=>wo.deliveryDate&&wo.deliveryDate<=orderDate);
+    const lateWO=allWO.filter(wo=>!wo.deliveryDate||wo.deliveryDate>orderDate);
+    const inTimeSupply=inTimeWO.reduce((s,wo)=>s+wo.unproduced,0);
+    const lateSupply=lateWO.reduce((s,wo)=>s+wo.unproduced,0);
+    const effectiveStock=d60Stock+inTimeSupply;
+    const gap=orderQty-effectiveStock;
+    const invStatus=gap<=0?'ok':gap<=orderQty*0.3?'warn':'no';
+    invResult={invName,d60Stock,inTimeSupply,lateSupply,effectiveStock,gap,invStatus,inTimeWO,lateWO,orderDate};
+  }
+
+  /* ── Render ── */
+  renderBanner(ceilResult,invResult,orderQty,rawDate);
+  renderCeilPanel(ceilResult,code);
+  renderInvPanel(invResult,code,rawDate);
+
+  document.getElementById('result-wrap').style.display='block';
+  document.getElementById('result-wrap').scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  /* history */
+  const overallStatus=computeOverall(ceilResult,invResult);
+  history.unshift({code,name:(ceilResult?.name||invResult?.invName||code),orderQty,ceilStatus:ceilResult?.ceilStatus,invStatus:invResult?.invStatus,overallStatus,rawDate});
+  renderHistory();
+  document.getElementById('history-card').style.display='block';
+}
+
+function computeOverall(c,i){
+  const statuses=[];
+  if(c) statuses.push(c.ceilStatus);
+  if(i) statuses.push(i.invStatus);
+  if(!statuses.length) return 'neutral';
+  if(statuses.includes('no')) return 'no';
+  if(statuses.includes('warn')) return 'warn';
+  if(statuses.every(s=>s==='ok')) return 'ok';
+  return 'neutral';
+}
+
+function renderBanner(c,i,qty,date){
+  const overall=computeOverall(c,i);
+  const banner=document.getElementById('banner');
+  banner.className='summary-banner banner-'+overall;
+  document.getElementById('banner-icon').textContent='';
+  const main=document.getElementById('banner-main');
+  main.className='banner-main '+overall;
+  const msgs={
+    ok:'建議接單',
+    warn:'建議謹慎評估後再接單',
+    no:'不建議接單',
+    neutral:'資料不足，無法完整評估'
+  };
+  main.textContent=msgs[overall];
+
+  const details=[];
+  if(c){
+    if(c.ceilStatus==='ok') details.push(`配貨天花板尚餘 ${fmt(c.remain)} 件`);
+    else if(c.ceilStatus==='warn') details.push(`超出天花板 ${fmt(-c.remain)} 件`);
+    else if(c.ceilStatus==='no') details.push(`本月配貨額度已滿（天花板 ${fmt(c.ceil)} 件）`);
+    else details.push('去年無銷售紀錄，無法計算天花板');
+  } else {
+    details.push('天花板資料未上傳');
+  }
+  if(i){
+    if(i.invStatus==='ok') details.push(`庫存充足（餘裕 ${fmt(-i.gap)} 件）`);
+    else if(i.invStatus==='warn') details.push(`庫存偏緊，缺口 ${fmt(i.gap)} 件`);
+    else details.push(`庫存不足，缺口 ${fmt(i.gap)} 件`);
+  } else if(!date) {
+    details.push('未輸入交貨日，庫存無法評估');
+  } else {
+    details.push('庫存資料未上傳');
+  }
+  document.getElementById('banner-detail').textContent=details.join('　／　');
+}
+
+function renderCeilPanel(c,code){
+  const body=document.getElementById('ceil-body');
+  if(!c){
+    body.innerHTML='<div class="missing-note">尚未上傳去年銷量、今年銷量或本月配貨資料</div>';
+    return;
+  }
+  const statusLabel={ok:'可接單',warn:'超出天花板',no:'額度已滿',neutral:'無銷售紀錄'}[c.ceilStatus];
+  const badgeCls={ok:'verdict-ok',warn:'verdict-warn',no:'verdict-no',neutral:'verdict-neutral'}[c.ceilStatus];
+  const msgCls={ok:'msg-ok',warn:'msg-warn',no:'msg-no',neutral:'msg-neutral'}[c.ceilStatus];
+  let verdictMsg;
+  if(c.ceilStatus==='ok') verdictMsg=`接完後本月剩餘額度 ${fmt(c.remain)} 件（天花板 ${fmt(c.ceil)} 件）。`;
+  else if(c.ceilStatus==='warn') verdictMsg=`超過天花板 ${fmt(-c.remain)} 件。本月最多還能接 ${fmt(Math.max(0,c.ceil-c.shipped))} 件。`;
+  else if(c.ceilStatus==='no') verdictMsg=`本月已配 ${fmt(c.shipped)} 件，已達天花板 ${fmt(c.ceil)} 件，不建議再接。`;
+  else verdictMsg='去年同月 Coupang 及 momo 均無銷售紀錄，無法計算天花板。';
+
+  const lyData=(lyMap[code]||{});
+  const tyData=(tyMap[code]||{});
+  const yoyRows=buildYOYRows(code);
+
+  body.innerHTML=`
+    <div class="verdict-badge ${badgeCls}">${statusLabel}</div>
+    <div class="stat-row"><span class="stat-label">去年同月（${c.curMonth}月）</span><span class="stat-value">C: ${fmt(c.lyCoupang)} ／ M: ${fmt(c.lyMomo)}</span></div>
+    <div class="stat-row"><span class="stat-label">基準（取最大）</span><span class="stat-value">${fmt(c.baseQty)}（來自 ${c.baseSource}）</span></div>
+    <div class="stat-row"><span class="stat-label">天花板（× ${growth.toFixed(2)}）</span><span class="stat-value">${fmt(c.ceil)}</span></div>
+    <div class="stat-row"><span class="stat-label">本月已配貨</span><span class="stat-value">${fmt(c.shipped)}</span></div>
+    <div class="stat-row"><span class="stat-label">本次訂單</span><span class="stat-value">${fmt(c.orderQty)}</span></div>
+    <div class="stat-row"><span class="stat-label">配完後剩餘空間</span><span class="stat-value ${c.remain>=0?'ok':'danger'}">${c.remain>=0?fmt(c.remain):'−'+fmt(-c.remain)}</span></div>
+    <div class="verdict-msg ${msgCls}">${verdictMsg}</div>
+    ${yoyRows}
+  `;
+}
+
+function buildYOYRows(code){
+  const ly=(lyMap[code]||{}).months||{};
+  const ty=(tyMap[code]||{}).months||{};
+  const lyM=(lyMap[code]||{}).momoMonths||{};
+  const tyM=(tyMap[code]||{}).momoMonths||{};
+  const months=[...new Set([...Object.keys(ly),...Object.keys(ty),...Object.keys(lyM),...Object.keys(tyM)])].map(Number).sort((a,b)=>a-b);
+  if(!months.length) return '';
+  const rows=months.map(m=>{
+    const l=ly[m]||0,t=ty[m]||0,ml=lyM[m]||0,mt=tyM[m]||0;
+    const yoy=l>0&&t>0?Math.round((t-l)/l*100):null;
+    const dcls=yoy===null?'':yoy>0?'diff-pos':yoy<0?'diff-neg':'';
+    const yoyStr=yoy===null?'—':(yoy>0?'+':'')+yoy+'%';
+    return `<tr>
+      <td>${m}月</td>
+      <td>${l>0?fmt(l):'—'}</td>
+      <td class="muted">${ml>0?fmt(ml):'—'}</td>
+      <td style="color:${t>0?'#2a6db5':'inherit'}">${t>0?fmt(t):'—'}</td>
+      <td class="muted" style="color:${mt>0?'#6a9fd0':'inherit'}">${mt>0?fmt(mt):'—'}</td>
+      <td class="${dcls}">${yoyStr}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="yoy-section">
+    <div class="yoy-label">逐月銷售比較</div>
+    <table class="yoy-table">
+      <thead><tr><th style="text-align:left">月份</th><th>去年C</th><th>去年M</th><th>今年C</th><th>今年M</th><th>YOY</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderInvPanel(i,code,rawDate){
+  const body=document.getElementById('inv-body');
+  if(!i){
+    const msg=!rawDate?'請輸入訂單交貨日以進行庫存評估':'尚未上傳 D+60 庫存表或生產工單資料';
+    body.innerHTML=`<div class="missing-note">${msg}</div>`;
+    return;
+  }
+  const statusLabel={ok:'庫存充足',warn:'庫存偏緊',no:'庫存不足'}[i.invStatus];
+  const badgeCls={ok:'verdict-ok',warn:'verdict-warn',no:'verdict-no'}[i.invStatus];
+  const msgCls={ok:'msg-ok',warn:'msg-warn',no:'msg-no'}[i.invStatus];
+  let verdictMsg;
+  if(i.invStatus==='ok') verdictMsg=`可如期交貨，尚有 ${fmt(-i.gap)} 件餘裕。`;
+  else if(i.invStatus==='warn') verdictMsg=`庫存偏緊，缺口 ${fmt(i.gap)} 件，建議確認補貨進度。`;
+  else verdictMsg=`庫存不足，缺口 ${fmt(i.gap)} 件，需要補貨後才能接單。`;
+
+  let woHtml='';
+  if(i.inTimeWO.length){
+    woHtml+=`<div class="wo-section"><div class="wo-title">準時補貨工單（交貨日 ≤ ${fmtDate(i.orderDate)}）</div>`;
+    i.inTimeWO.forEach(wo=>{woHtml+=`<div class="wo-row"><span class="wo-date">${wo.deliveryRaw||'—'}</span><span class="wo-supplier">${esc(wo.supplier)}</span><span class="wo-qty ok">+${fmt(wo.unproduced)}</span><span class="wo-flag" style="color:var(--ok)">計入</span></div>`;});
+    woHtml+='</div>';
+  }
+  if(i.lateWO.length){
+    woHtml+=`<div class="wo-section"><div class="wo-title">來不及的工單（交貨日晚於訂單日）</div>`;
+    i.lateWO.forEach(wo=>{woHtml+=`<div class="wo-row"><span class="wo-date">${wo.deliveryRaw||'—'}</span><span class="wo-supplier">${esc(wo.supplier)}</span><span class="wo-qty warn">${fmt(wo.unproduced)}</span><span class="wo-flag" style="color:var(--warn)">來不及</span></div>`;});
+    woHtml+='</div>';
+  }
+  if(!i.inTimeWO.length&&!i.lateWO.length){
+    woHtml=`<div class="wo-section"><div style="padding:6px 0;color:var(--ink3);font-size:11px">此品項目前無進行中工單</div></div>`;
+  }
+
+  body.innerHTML=`
+    <div class="verdict-badge ${badgeCls}">${statusLabel}</div>
+    <div class="stat-row"><span class="stat-label">D+60 現有庫存</span><span class="stat-value">${fmt(i.d60Stock)}</span></div>
+    <div class="stat-row"><span class="stat-label">準時補貨工單（${i.inTimeWO.length} 張）</span><span class="stat-value ok">+${fmt(i.inTimeSupply)}</span></div>
+    <div class="stat-row"><span class="stat-label">可用庫存合計</span><span class="stat-value">${fmt(i.effectiveStock)}</span></div>
+    <div class="stat-row"><span class="stat-label">本次訂單需求</span><span class="stat-value">${fmt(document.getElementById('order-qty').value||0)}</span></div>
+    <div class="stat-row"><span class="stat-label">庫存缺口</span><span class="stat-value ${i.gap<=0?'ok':'danger'}">${i.gap<=0?`餘 +${fmt(-i.gap)}`:`缺 ${fmt(i.gap)}`}</span></div>
+    <div class="verdict-msg ${msgCls}">${verdictMsg}</div>
+    ${woHtml}
+  `;
+}
+
+function renderHistory(){
+  const hl=document.getElementById('history-list');
+  if(!history.length){hl.innerHTML='';return;}
+  hl.innerHTML=history.map(h=>{
+    const cTag=h.ceilStatus?`<span class="tag tag-${h.ceilStatus==='neutral'?'neutral':h.ceilStatus==='ok'?'ok':h.ceilStatus==='warn'?'warn':'no'}">${{ok:'天花板 OK',warn:'超出天花板',no:'額度已滿',neutral:'無紀錄'}[h.ceilStatus]}</span>`:'';
+    const iTag=h.invStatus?`<span class="tag tag-${h.invStatus==='ok'?'ok':h.invStatus==='warn'?'warn':'no'}">${{ok:'庫存充足',warn:'庫存偏緊',no:'庫存不足'}[h.invStatus]}</span>`:'';
+    const dateStr=h.rawDate?`　交貨 ${h.rawDate}`:'';
+    return `<div class="history-item">
+      <div>
+        <div class="history-name">${esc(h.name)}<span style="color:var(--ink3);font-size:10px;margin-left:6px;font-family:var(--mono)">${esc(h.code)}</span></div>
+        <div class="history-meta">訂單 ${fmt(h.orderQty)}${dateStr}</div>
+      </div>
+      <div class="history-tags">${cTag}${iTag}</div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btn-clear').addEventListener('click',()=>{
+  history=[];renderHistory();
+  document.getElementById('history-card').style.display='none';
+  document.getElementById('result-wrap').style.display='none';
+});
+
+[['f-ly','LY'],['f-ty','TY'],['f-mm','MM'],['f-stock','STOCK'],['f-wo','WO']].forEach(([id,type])=>{
+  document.getElementById(id).addEventListener('change',async function(){
+    if(this.files[0]) await loadFile(this.files[0],type);
+    this.value='';
+  });
+});
+
+function fmt(n){return Number(n||0).toLocaleString('zh-TW');}
+function fmtDate(d){if(!d) return '—';const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}/${m}/${day}`;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+openDB().then(restoreFromDB);
+</script>
+</body>
+</html>
