@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&family=Plus+Jakarta+Sans:wght@400;500;600;800&display=swap');
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
@@ -60,7 +60,7 @@ body{
   display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;
 }
 .hd-sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;font-weight:500;}
-.hd-title{font-size:1.45rem;font-weight:600;color:var(--ink);letter-spacing:-.02em;font-family:'Plus Jakarta Sans',sans-serif;}
+.hd-title{font-size:1.45rem;font-weight:800;color:var(--ink);letter-spacing:-.02em;font-family:'Plus Jakarta Sans',sans-serif;}
 .hd-desc{font-size:12px;color:var(--ink3);margin-top:4px;font-weight:400;}
 .status-pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
 .pill{
@@ -796,7 +796,7 @@ function doCheck(){
 
   /* history */
   const overallStatus=computeOverall(ceilResult,invResult);
-  history.unshift({code,name:(ceilResult?.name||invResult?.invName||code),orderQty,ceilStatus:ceilResult?.ceilStatus,invStatus:invResult?.invStatus,overallStatus,rawDate});
+  history.unshift({code,name:(ceilResult?.name||invResult?.invName||code),orderQty,ceilStatus:ceilResult?.ceilStatus,invStatus:invResult?.invStatus,overallStatus,rawDate,shipped:ceilResult?.shipped??null,ceil:ceilResult?.ceil??null});
   renderHistory();
   document.getElementById('history-card').style.display='block';
 }
@@ -959,10 +959,11 @@ function renderHistory(){
     const cTag=h.ceilStatus?`<span class="tag tag-${h.ceilStatus==='neutral'?'neutral':h.ceilStatus==='ok'?'ok':h.ceilStatus==='warn'?'warn':'no'}">${{ok:'天花板 OK',warn:'超出天花板',no:'額度已滿',neutral:'無紀錄'}[h.ceilStatus]}</span>`:'';
     const iTag=h.invStatus?`<span class="tag tag-${h.invStatus==='ok'?'ok':h.invStatus==='warn'?'warn':'no'}">${{ok:'庫存充足',warn:'庫存偏緊',no:'庫存不足'}[h.invStatus]}</span>`:'';
     const dateStr=h.rawDate?`　交貨 ${h.rawDate}`:'';
+    const ceilStr=(h.shipped!==null&&h.ceil!==null)?`　已配 ${fmt(h.shipped)} ／ 天花板 ${fmt(h.ceil)}`:'';
     return `<div class="history-item">
       <div>
         <div class="history-name">${esc(h.name)}<span style="color:var(--ink3);font-size:10px;margin-left:6px;font-family:var(--mono)">${esc(h.code)}</span></div>
-        <div class="history-meta">訂單 ${fmt(h.orderQty)}${dateStr}</div>
+        <div class="history-meta">訂單 ${fmt(h.orderQty)}${dateStr}${ceilStr}</div>
       </div>
       <div class="history-tags">${cTag}${iTag}</div>
     </div>`;
