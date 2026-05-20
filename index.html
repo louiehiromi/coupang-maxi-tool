@@ -557,26 +557,61 @@ function parseOrders(wb){
   const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',raw:false});
   const map={};
   let pendingByWo={};
+  const codeRe=/^[A-Z]\d{5}$/;
+  const addWorkOrder=(code,name,wo)=>{
+    if(!codeRe.test(code)) return;
+    if(!map[code]) map[code]={name:name||code,workOrders:[]};
+    else if(name&&!map[code].name) map[code].name=name;
+
+    // 「未生產」空白、0 或已完成時，不列入進行中工單，避免畫面顯示已完成工單。
+    if((wo.unproduced||0)>0){
+      map[code].workOrders.push({
+        woId:wo.woId,
+        deliveryDate:wo.deliveryDate,
+        deliveryRaw:wo.deliveryRaw,
+        supplier:wo.supplier,
+        unproduced:wo.unproduced
+      });
+    }
+  };
+
   for(let i=0;i<rows.length;i++){
     const row=rows[i];
     const c0=String(row[0]||'').trim();
+
+    // 工單明細列：新版欄位為「工單日期-號碼 / 品項編號 / 品項 / 客供商 / 交貨日 / ... / 未生產」。
+    // 舊版沒有品項編號，仍保留 pendingByWo + 合計列的判斷方式。
     if(/^\d{4}\/\d{2}\/\d{2}/.test(c0)){
       const woId=c0;
-      const supplier=String(row[2]||'').trim();
-      const deliveryRaw=String(row[3]||'').trim();
-      const deliveryDate=parseDateStr(deliveryRaw);
-      const unproduced=pn(row[8]);
-      if(!pendingByWo[woId]) pendingByWo[woId]={woId,deliveryDate,deliveryRaw:deliveryRaw.trim(),supplier,unproducedValues:[]};
-      pendingByWo[woId].unproducedValues.push(unproduced);
+      const hasItemCode=codeRe.test(String(row[1]||'').trim());
+
+      if(hasItemCode){
+        const code=String(row[1]||'').trim();
+        const name=String(row[2]||code).trim();
+        const supplier=String(row[3]||'').trim();
+        const deliveryRaw=String(row[4]||'').trim();
+        const deliveryDate=parseDateStr(deliveryRaw);
+        const unproduced=pn(row[9]);
+        addWorkOrder(code,name,{woId,deliveryDate,deliveryRaw:deliveryRaw.trim(),supplier,unproduced});
+      }else{
+        const supplier=String(row[2]||'').trim();
+        const deliveryRaw=String(row[3]||'').trim();
+        const deliveryDate=parseDateStr(deliveryRaw);
+        const unproduced=pn(row[8]);
+        if(!pendingByWo[woId]) pendingByWo[woId]={woId,deliveryDate,deliveryRaw:deliveryRaw.trim(),supplier,unproducedValues:[]};
+        pendingByWo[woId].unproducedValues.push(unproduced);
+      }
       continue;
     }
+
+    // 合計列：新版雖然已可直接從明細列讀到品項編號，仍保留此段支援舊版工單。
     const m=c0.match(/^([A-Z]\d{5})\s*\/\s*(.+?)\s*合計$/);
     if(m){
       const code=m[1],name=m[2].trim();
       if(!map[code]) map[code]={name,workOrders:[]};
       for(const wo of Object.values(pendingByWo)){
         const minU=wo.unproducedValues.length?Math.min(...wo.unproducedValues):0;
-        if(minU>0) map[code].workOrders.push({woId:wo.woId,deliveryDate:wo.deliveryDate,deliveryRaw:wo.deliveryRaw,supplier:wo.supplier,unproduced:minU});
+        addWorkOrder(code,name,{woId:wo.woId,deliveryDate:wo.deliveryDate,deliveryRaw:wo.deliveryRaw,supplier:wo.supplier,unproduced:minU});
       }
       pendingByWo={};
     }
