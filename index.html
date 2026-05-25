@@ -562,30 +562,30 @@ function parseOrders(wb){
     if(!codeRe.test(code)) return;
     if(!map[code]) map[code]={name:name||code,workOrders:[]};
     else if(name&&!map[code].name) map[code].name=name;
-
-    // 「未生產」空白、0 或已完成時，不列入進行中工單，避免畫面顯示已完成工單。
     if((wo.unproduced||0)>0){
-      map[code].workOrders.push({
-        woId:wo.woId,
-        deliveryDate:wo.deliveryDate,
-        deliveryRaw:wo.deliveryRaw,
-        supplier:wo.supplier,
-        unproduced:wo.unproduced
-      });
+      // 同一張工單（woId 相同）只保留最小未生產數，避免重複累計
+      const existing=map[code].workOrders.find(w=>w.woId===wo.woId);
+      if(existing){
+        existing.unproduced=Math.min(existing.unproduced,wo.unproduced);
+      }else{
+        map[code].workOrders.push({
+          woId:wo.woId,
+          deliveryDate:wo.deliveryDate,
+          deliveryRaw:wo.deliveryRaw,
+          supplier:wo.supplier,
+          unproduced:wo.unproduced
+        });
+      }
     }
   };
-
   for(let i=0;i<rows.length;i++){
     const row=rows[i];
     const c0=String(row[0]||'').trim();
-
-    // 工單明細列：新版欄位為「工單日期-號碼 / 品項編號 / 品項 / 客供商 / 交貨日 / ... / 未生產」。
-    // 舊版沒有品項編號，仍保留 pendingByWo + 合計列的判斷方式。
     if(/^\d{4}\/\d{2}\/\d{2}/.test(c0)){
       const woId=c0;
       const hasItemCode=codeRe.test(String(row[1]||'').trim());
-
       if(hasItemCode){
+        // 新版：明細列直接含品項編號
         const code=String(row[1]||'').trim();
         const name=String(row[2]||code).trim();
         const supplier=String(row[3]||'').trim();
@@ -594,6 +594,7 @@ function parseOrders(wb){
         const unproduced=pn(row[9]);
         addWorkOrder(code,name,{woId,deliveryDate,deliveryRaw:deliveryRaw.trim(),supplier,unproduced});
       }else{
+        // 舊版：需等合計列才知道品項編號
         const supplier=String(row[2]||'').trim();
         const deliveryRaw=String(row[3]||'').trim();
         const deliveryDate=parseDateStr(deliveryRaw);
@@ -603,8 +604,7 @@ function parseOrders(wb){
       }
       continue;
     }
-
-    // 合計列：新版雖然已可直接從明細列讀到品項編號，仍保留此段支援舊版工單。
+    // 合計列：支援舊版工單
     const m=c0.match(/^([A-Z]\d{5})\s*\/\s*(.+?)\s*合計$/);
     if(m){
       const code=m[1],name=m[2].trim();
@@ -615,6 +615,20 @@ function parseOrders(wb){
       }
       pendingByWo={};
     }
+  }
+  // 後處理：同品項中，交貨日＋客供商相同的工單視為同一張，只保留最小未生產數
+  for(const code of Object.keys(map)){
+    const merged=[];
+    for(const wo of map[code].workOrders){
+      const key=`${wo.deliveryRaw}|${wo.supplier}`;
+      const ex=merged.find(w=>`${w.deliveryRaw}|${w.supplier}`===key);
+      if(ex){
+        ex.unproduced=Math.min(ex.unproduced,wo.unproduced);
+      }else{
+        merged.push({...wo});
+      }
+    }
+    map[code].workOrders=merged;
   }
   return map;
 }
