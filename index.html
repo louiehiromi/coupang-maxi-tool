@@ -931,12 +931,13 @@ function renderCeilPanel(c,code){
 
 function buildYOYRows(code){
   const ly=(lyMap[code]||{}).months||{};
-  const ty=(tyMap[code]||{}).months||{};
+  const ty=(tyMap[code]||{}).months||{}; 
   const lyM=(lyMap[code]||{}).momoMonths||{};
   const tyM=(tyMap[code]||{}).momoMonths||{};
-  const months=[...new Set([...Object.keys(ly),...Object.keys(ty),...Object.keys(lyM),...Object.keys(tyM)])].map(Number).sort((a,b)=>a-b);
-  if(!months.length) return '';
-  const rows=months.map(m=>{
+  // 取當前月份往前後各2個月，跨年處理（1-12循環）
+  const curM=getCurrentMonth();
+  const rangeMonths=[-2,-1,0,1,2].map(offset=>{let m=curM+offset;if(m<1)m+=12;if(m>12)m-=12;return m;});
+  const rows=rangeMonths.map(m=>{
     const l=ly[m]||0,t=ty[m]||0,ml=lyM[m]||0,mt=tyM[m]||0;
     const yoy=l>0&&t>0?Math.round((t-l)/l*100):null;
     const dcls=yoy===null?'':yoy>0?'diff-pos':yoy<0?'diff-neg':'';
@@ -950,8 +951,9 @@ function buildYOYRows(code){
       <td class="${dcls}">${yoyStr}</td>
     </tr>`;
   }).join('');
+  if(!rows) return '';
   return `<div class="yoy-section">
-    <div class="yoy-label">逐月銷售比較</div>
+    <div class="yoy-label">逐月銷售比較（${rangeMonths[0]}月–${rangeMonths[4]}月）</div>
     <table class="yoy-table">
       <thead><tr><th style="text-align:left">月份</th><th>去年C</th><th>去年M</th><th>今年C</th><th>今年M</th><th>YOY</th></tr></thead>
       <tbody>${rows}</tbody>
